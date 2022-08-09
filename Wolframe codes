@@ -1,0 +1,93 @@
+(*Methods from Lorentz Boost *)
+
+Clear["Global`*"]
+
+
+(* w = Sqrt[vx^2+vy^2+vz^2]^3/M *)
+
+
+(* nx = (npx-beta)/(1-npx*beta) *)
+
+ny = 0
+nz = Sqrt[1-nx^2-ny^2]
+nvec = {nx,ny,nz} (*wave vector in the observer's frame*)
+
+vz = 0
+
+ax = vx/w
+ay = vy/w
+az = vz/w (*velocities & accelerations*)
+
+phiy = 0.55*Pi
+phiz = 0.1*Pi (*arbitrarily chosen phases of y & z motions*)
+
+line1 = D[{D[ax*Cos[w*t]*ax*Cos[w*t],t],D[ax*Cos[w*t]*ay*Cos[w*t+phiy],t],D[ax*Cos[w*t]*az*Cos[w*t+phiz],t]}, t]
+line2 = D[{D[ay*Cos[w*t+phiy]*ax*Cos[w*t],t],D[ay*Cos[w*t+phiy]*ay*Cos[w*t+phiy],t],D[ay*Cos[w*t+phiy]*az*Cos[w*t+phiz],t]}, t]
+line3 = D[{D[az*Cos[w*t+phiz]*ax*Cos[w*t],t],D[az*Cos[w*t+phiz]*ay*Cos[w*t+phiy],t],D[az*Cos[w*t+phiz]*az*Cos[w*t+phiz],t]}, t]
+hij = (2/R) M * {line1,line2,line3} 
+hd = hij.nvec
+hdd = nvec. hij . nvec 
+(*getting full 4*4 tensor components*)
+
+btvec = {-beta,0,0}
+gamma = 1/Sqrt[1-beta^2]
+
+
+lambda = {{gamma,0,0,gamma*beta},{0,1,0,0},{0,0,1,0},{gamma*beta,0,0,gamma}}
+hmu = {{hij[[1,1]],hij[[1,2]],hij[[1,3]],hd[[1]]},{hij[[2,1]],hij[[2,2]],hij[[2,3]],hd[[2]]},{hij[[3,1]],hij[[3,2]],hij[[3,3]],hd[[3]]},{hd[[1]],hd[[2]],hd[[3]],hdd}}
+hBoost = lambda.hmu.lambda
+hijBoost = {{hBoost[[1,1]],hBoost[[1,2]],hBoost[[1,3]]},{hBoost[[2,1]],hBoost[[2,2]],hBoost[[2,3]]},{hBoost[[3,1]],hBoost[[3,2]],hBoost[[3,3]]}}
+
+(* Methods from our paper. (Named as hijYH.) *)
+
+btpvec = {beta,0,0}
+
+wp = w/gamma
+tp = w*t/wp
+
+Rmove = R*gamma*(1+nx*beta)
+
+tde = t + 2*beta*ax*Cos[w*t] 
+(* different time delation between two particles *)
+vvec = {(-w*ax*Sin[w*t]+beta)/(1-beta*w*ax*Sin[w*t]), (-w*ay*Sin[w*t+phiy])/(gamma*(1-beta*w*ax*Sin[w*t])), (-w*az*Sin[w*t+phiz])/(gamma*(1-beta*w*ax*Sin[w*t]))}
+vvec2 = {(w*ax*Sin[w*(tde)]+beta)/(1+beta*w*ax*Sin[w*(tde)]), (w*ay*Sin[w*(tde)+phiy])/(gamma*(1+beta*w*ax*Sin[w*(tde)])), (w*az*Sin[w*(tde)+phiz])/(gamma*(1+beta*w*ax*Sin[w*(tde)]))}
+gamv = 1/Sqrt[1-vvec.vvec]
+gamv2 = 1/Sqrt[1-vvec2.vvec2]
+ 
+deltap = {ax*Cos[w*t]/gamma,ay*Cos[w*t+phiy],az*Cos[w*t+phiz]}
+deltap2 = {-ax*Cos[w*tde]/gamma,-ay*Cos[w*tde+phiy],-az*Cos[w*tde+phiz]}
+lineone = {D[gamv*vvec[[1]]*vvec[[1]]*npvec.deltap,t],D[gamv*vvec[[1]]*vvec[[2]]*npvec.deltap,t],D[gamv*vvec[[1]]*vvec[[3]]*npvec.deltap,t]}
+linetwo = {D[gamv*vvec[[2]]*vvec[[1]]*npvec.deltap,t],D[gamv*vvec[[2]]*vvec[[2]]*npvec.deltap,t],D[gamv*vvec[[2]]*vvec[[3]]*npvec.deltap,t]}
+linethr = {D[gamv*vvec[[3]]*vvec[[1]]*npvec.deltap,t],D[gamv*vvec[[3]]*vvec[[2]]*npvec.deltap,t],D[gamv*vvec[[3]]*vvec[[3]]*npvec.deltap,t]}
+
+lineone2 = {D[gamv2*vvec2[[1]]*vvec2[[1]]*npvec.deltap2,t],D[gamv2*vvec2[[1]]*vvec2[[2]]*npvec.deltap2,t],D[gamv2*vvec2[[1]]*vvec2[[3]]*npvec.deltap2,t]}
+linetwo2 = {D[gamv2*vvec2[[2]]*vvec2[[1]]*npvec.deltap2,t],D[gamv2*vvec2[[2]]*vvec2[[2]]*npvec.deltap2,t],D[gamv2*vvec2[[2]]*vvec2[[3]]*npvec.deltap2,t]}
+linethr2 = {D[gamv2*vvec2[[3]]*vvec2[[1]]*npvec.deltap2,t],D[gamv2*vvec2[[3]]*vvec2[[2]]*npvec.deltap2,t],D[gamv2*vvec2[[3]]*vvec2[[3]]*npvec.deltap2,t]}
+
+hijYH = 1*((1)/(1-Dot[npvec,btpvec])) * (1/Rmove) * gamma * M * (D[D[Outer[Times,deltap,deltap],t],t] + D[D[Outer[Times,deltap2,deltap2],t],t])* wp^2/w^2+
+(2/(1-Dot[npvec,btpvec])^3) * (1/Rmove) * M * (1-npvec.btpvec) * {lineone,linetwo,linethr} * wp/w +
+(2/(1-Dot[npvec,btpvec])^3) * (1/Rmove) * M * (1-npvec.btpvec) * {lineone2,linetwo2,linethr2} * wp/w+ 
+1 * (1/(1-Dot[npvec,btpvec])^5) * (1/Rmove) * gamma * M * Outer[Times,btpvec,btpvec] * (1-Dot[npvec,btpvec])^2 * (D[D[(npvec.deltap)^2,t],t] + D[D[(npvec.deltap2)^2,t],t])* wp^2/w^2;
+
+
+(*TT projection*)
+
+Pmat = IdentityMatrix[3] - Outer[Times,npvec,npvec]
+
+hijBoostTT = Pmat . hijBoost . Pmat - 0.5* Pmat * (Tr[hijBoost] - npvec . hijBoost . npvec);
+hijYHTT = Pmat . hijYH . Pmat - 0.5* Pmat * (Tr[hijYH] - npvec . hijYH . npvec) ;
+
+
+(*Compare two methods*)
+
+(* Clear["Global`*"] *)
+
+t = 0.3*Pi/w
+
+ii = 3
+jj = 3
+
+hB = Series[hijBoostTT[[ii,jj]],{beta,0,3}]
+hY = Series[Series[hijYHTT[[ii,jj]],{beta,0,3}],{vy, 0,2}]
+
+hde2 = FullSimplify[Series[Series[hY - hB, {vx,0,2}], {vy,0,2}]]
